@@ -1,0 +1,29 @@
+version = 1
+fail_open = false
+[branches]
+protected = ["main", "release/*"]
+[secrets]
+paths = [".env", ".env.*", "*.pem", "id_*", "secrets/**"]
+[receipts]
+test = ["pytest", "npm test", "make test", "python -m unittest discover -s tests -v"]
+build = ["npm run build"]
+[gates.deploy]
+match = ["./deploy.sh*", "npm publish*", "kubectl apply*"]
+requires = ["test"]
+max_age_minutes = 120
+[gates.merge]
+match = ["git merge*"]
+requires = ["test"]
+max_age_minutes = 120
+[[test]]
+command = "git push --force origin main"
+expect = "deny"
+rule = "R3"
+[[test]]
+command = "./deploy.sh | tail -20"
+expect = "deny"
+rule = "R2"
+[[test]]
+command = "cat .env"
+expect = "deny"
+rule = "R4"

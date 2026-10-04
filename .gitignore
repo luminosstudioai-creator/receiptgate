@@ -1,0 +1,11 @@
+.receiptgate/
+.venv/
+__pycache__/
+*.pyc
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
