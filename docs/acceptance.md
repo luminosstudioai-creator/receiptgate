@@ -48,8 +48,11 @@ The current branch keeps direct argv separate from shell text, uses shared execu
 checks, writes portable Git-Bash hook paths and quotes POSIX table paths. The argv fix at
 `2483e62b22b2912287db927c8d3576d1dbe124fa` then
 [passed all nine matrix jobs](https://github.com/luminosstudioai-creator/receiptgate/actions/runs/37282071299).
-The current Git-pathspec selection guard remains **pending its own remote CI verification**;
-local passing checks are not substituted for that new-head result.
+The Git-pathspec selection guard at `256f78127500106b7fa57ce2926eb3c4359dee01`
+[passed all nine matrix jobs](https://github.com/luminosstudioai-creator/receiptgate/actions/runs/37283252267), including
+40 test methods, lint, strict typing, coverage and package builds. The installed wheel was
+separately checked outside the source tree: direct execution, wildcard staging denial and
+ledger verification passed in a synthetic repository.
 
 The [raw hook benchmark](benchmarks/hook-latency-2026-10-05.json) at `124eb7d`
 ran 1,000 standalone hook processes on macOS / Python 3.13.11 with synthetic PreToolUse
@@ -61,7 +64,6 @@ large-repository performance. This fix does not attempt a latency optimization.
 
 - Real Claude and Codex sessions, Pre/Post/Stop golden captures and blocking proof: NOT RUN.
 - Agent auto-install and automatic post-event receipts: UNSUPPORTED in this alpha.
-- Remote CI verification of the current Git-pathspec guard: PENDING.
 - Windows locking unit tests passed in the follow-up matrix at `2483e62`; live-agent and
   production use remain NOT RUN.
 - Stop warn mode, report/SARIF, external signatures/anchors: UNSUPPORTED.

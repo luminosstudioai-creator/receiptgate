@@ -129,7 +129,7 @@ python3 -m venv .venv
 The CI matrix covers Python 3.11–3.13 across Linux, macOS and Windows. Its first run at
 `124eb7d` passed six Linux/macOS jobs and failed all three Windows jobs. The argv fix at
 `2483e62` subsequently [passed all nine jobs](https://github.com/luminosstudioai-creator/receiptgate/actions/runs/37282071299).
-The current Git-pathspec guard still awaits its own remote verification. The measured 1,000-process hook benchmark failed the p95 <50ms target
+The Git-pathspec guard at `256f781` also [passed all nine jobs](https://github.com/luminosstudioai-creator/receiptgate/actions/runs/37283252267). The measured 1,000-process hook benchmark failed the p95 <50ms target
 (p95 130.3ms on that earlier commit). Details and raw benchmark data are recorded in
 [docs/acceptance.md](docs/acceptance.md).
 
