@@ -16,8 +16,14 @@ containing private data. A security contact email is not invented here.
   submodules. They exclude ignored files, dependencies, external files and process environment.
 - Before/after snapshots cannot detect a temporary change and revert or lock the tested
   state against changes after the gate is checked.
+- `check` and Bash hooks interpret restricted POSIX/Bash text. Direct `run` argv is never
+  shell-parsed; known wrappers and batch/shell executables remain denied.
 - Shell checks are conservative heuristics for a restricted grammar, not semantic analysis
   of arbitrary programs. Scripts and interpreters can perform hidden actions.
+- Git expands pathspecs independently of the invoking shell. The shared guard rejects
+  glob/magic/directory selection and implicit broad index options. Add/rm/restore require
+  explicit existing regular-file paths; missing paths and unsupported options need manual
+  review. This is deliberately conservative and does not analyze arbitrary executables.
 - Existing hardlink aliases to policy, ledger and key Git configuration files are checked
   by inode. This is not an atomic filesystem permission boundary.
 - Rule checks and runner execution are not atomic. Git hooks can be bypassed or replaced.

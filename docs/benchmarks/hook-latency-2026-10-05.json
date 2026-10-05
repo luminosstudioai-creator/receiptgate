@@ -1,0 +1,13 @@
+{
+  "commit": "124eb7dc85aed5270d4f20528186698d8b3dfbe1",
+  "python": "3.13.11",
+  "platform": "darwin",
+  "invocations": 1000,
+  "payload": "synthetic Claude-style PreToolUse, echo synthetic",
+  "fixture": "3 tracked files, empty ledger",
+  "median_ms": 123.8392085,
+  "p95_ms": 130.274042,
+  "max_ms": 149.81475,
+  "gate_p95_under_50_ms": "FAIL",
+  "limits": "Standalone CLI hook processes on this Mac; no live agent session, no large repository or model runtime measured."
+}

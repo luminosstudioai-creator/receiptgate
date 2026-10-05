@@ -31,8 +31,15 @@ receiptgate verify
 receiptgate status
 ```
 
-`check` never executes the command. `run` executes an argument vector directly, without
-a shell. A passing process is eligible evidence only when the before/after snapshots
+`check` never executes the command and interprets its input as restricted POSIX/Bash shell
+text, including on Windows. It does not interpret PowerShell or cmd syntax. `run` checks
+and executes the original argument vector directly, without a shell. Backslashes and
+operator-like argument strings remain literal data; they are never reparsed as shell code.
+Known wrappers, leading option aliases and protected operations use the same rule checks
+in both interfaces. Git's own wildcard/magic pathspecs, directories and implicit file
+selection also require manual review. `git add`, `rm` and `restore` accept only explicit
+existing regular files and supported options; ordinary `git add app.txt` remains usable. Windows `.exe` names share the corresponding executable checks.
+Batch `.bat`/`.cmd` files and shell interpreters require manual review and are denied. A passing process is eligible evidence only when the before/after snapshots
 match and the starting tree is clean. Test commands that generate untracked files must
 ignore those outputs deliberately. Commit the policy before collecting release evidence.
 
@@ -119,8 +126,11 @@ python3 -m venv .venv
 .venv/bin/coverage report --include="*/rules.py,*/ledger.py,*/shell.py" --fail-under=90
 ```
 
-The CI source includes Python 3.11–3.13 across Linux, macOS and Windows. A configured matrix
-is not evidence those remote jobs passed. Local verification and remaining release gates
-are recorded explicitly in [docs/acceptance.md](docs/acceptance.md).
+The CI matrix covers Python 3.11–3.13 across Linux, macOS and Windows. Its first run at
+`124eb7d` passed six Linux/macOS jobs and failed all three Windows jobs. The argv fix at
+`2483e62` subsequently [passed all nine jobs](https://github.com/luminosstudioai-creator/receiptgate/actions/runs/37282071299).
+The Git-pathspec guard at `256f781` also [passed all nine jobs](https://github.com/luminosstudioai-creator/receiptgate/actions/runs/37283252267). The measured 1,000-process hook benchmark failed the p95 <50ms target
+(p95 130.3ms on that earlier commit). Details and raw benchmark data are recorded in
+[docs/acceptance.md](docs/acceptance.md).
 
 Apache-2.0 · Copyright 2026 Mika Mischke

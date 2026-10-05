@@ -1,6 +1,7 @@
 """Thirty explicit behavior cases per built-in rule, including allowed commands."""
 
 import tempfile
+import shlex
 import time
 import unittest
 from pathlib import Path
@@ -46,7 +47,7 @@ class RuleTables(unittest.TestCase):
                 "rm .codex/hooks.json",
                 "rm .codex/config.toml",
                 "rm .git/hooks/pre-push",
-                "cat " + str(self.root / "receiptgate.toml"),
+                "cat " + shlex.quote((self.root / "receiptgate.toml").as_posix()),
                 "rm ./receiptgate.toml",
                 "rm ./nested/../receiptgate.toml",
                 "cp .codex/hooks.json x",

@@ -101,6 +101,111 @@ class Security(unittest.TestCase):
         with self.assertRaises(shell.ShellError):
             shell.tokens("echo ~+")
 
+    def test_git_directory_and_implicit_selection_denied(self):
+        (self.root / "nested").mkdir()
+        for argv in [
+            ["git", "add", "."],
+            ["git", "add", "--all"],
+            ["git", "add", "-A"],
+            ["git", "add"],
+            ["git", "add", "missing.txt"],
+            ["git", "add", "--unknown", "app.txt"],
+            ["git", "add", ".env"],
+            ["git", "commit", "-am", "change"],
+            ["git", "add", "nested/"],
+            ["git", "rm", "-r", "."],
+            ["git", "add", "--pathspec-from-file", "list.txt"],
+            ["git", "restore", "."],
+        ]:
+            with self.subTest(argv=argv):
+                self.assertEqual(
+                    rules.evaluate_argv(self.root, argv, self.policy, STATE, [])["decision"], "deny"
+                )
+        (self.root / "app.txt").write_text("regular")
+        self.assertEqual(
+            rules.evaluate_argv(self.root, ["git", "add", "--", "app.txt"], self.policy, STATE, [])[
+                "decision"
+            ],
+            "allow",
+        )
+
+    def test_git_pathspec_magic_and_wildcards_fail_closed(self):
+        (self.root / "app.txt").write_text("regular")
+        pathspecs = [
+            "*",
+            "?.py",
+            "[ab].py",
+            ":(glob)**",
+            ":!app.txt",
+            ":^app.txt",
+            ":(exclude)app.txt",
+            ":/app.txt",
+            ":(literal).env",
+        ]
+        operations = [
+            "add",
+            "rm",
+            "restore",
+            "checkout",
+            "reset",
+            "diff",
+            "ls-files",
+            "commit",
+            "stash",
+            "archive",
+        ]
+        for operation in operations:
+            for pathspec in pathspecs:
+                with self.subTest(operation=operation, pathspec=pathspec):
+                    d = rules.evaluate_argv(
+                        self.root, ["git", operation, "--", pathspec], self.policy, STATE, []
+                    )
+                    self.assertEqual(d["decision"], "deny")
+        self.assertEqual(
+            rules.evaluate_argv(self.root, ["git", "add", "--", "app.txt"], self.policy, STATE, [])[
+                "decision"
+            ],
+            "allow",
+        )
+        self.assertEqual(
+            rules.evaluate_argv(self.root, ["echo", "*", ":(glob)**"], self.policy, STATE, [])[
+                "decision"
+            ],
+            "allow",
+        )
+
+    def test_direct_argv_preserves_checks_without_shell_operators(self):
+        for argv in [
+            ["nice", "git", "push", "origin", "HEAD:main"],
+            ["git.exe", "push", "origin", "main"],
+            ["npm", "--prefix", "/tmp", "publish"],
+            ["cmd.exe", "/c", "deploy.cmd"],
+            ["deploy.cmd"],
+            ["powershell.exe", "-Command", "deploy"],
+        ]:
+            with self.subTest(argv=argv):
+                self.assertEqual(
+                    rules.evaluate_argv(self.root, argv, self.policy, STATE, [])["decision"], "deny"
+                )
+        self.assertEqual(
+            rules.evaluate_argv(
+                self.root, ["echo", r"C:\temp\folder", "||"], self.policy, STATE, []
+            )["decision"],
+            "allow",
+        )
+        self.assertEqual(
+            rules.evaluate_argv(self.root, ["pytest", "||", "true"], self.policy, STATE, [])[
+                "decision"
+            ],
+            "allow",
+        )
+        self.assertEqual(rules.kind_for("pytest '||' true", self.policy), "command")
+        for argv in [[], [""], ["echo", "nul\x00"]]:
+            with self.subTest(argv=argv):
+                self.assertEqual(
+                    rules.evaluate_argv(self.root, argv, self.policy, STATE, [])["decision"], "deny"
+                )
+
     def test_git_metadata_refspec_object_and_tilde_regressions(self):
         for command in [
             "git config --local core.hooksPath /dev/null",
