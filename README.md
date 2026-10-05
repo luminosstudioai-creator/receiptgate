@@ -36,7 +36,9 @@ text, including on Windows. It does not interpret PowerShell or cmd syntax. `run
 and executes the original argument vector directly, without a shell. Backslashes and
 operator-like argument strings remain literal data; they are never reparsed as shell code.
 Known wrappers, leading option aliases and protected operations use the same rule checks
-in both interfaces. Windows `.exe` names share the corresponding executable checks.
+in both interfaces. Git's own wildcard/magic pathspecs, directories and implicit file
+selection also require manual review. `git add`, `rm` and `restore` accept only explicit
+existing regular files and supported options; ordinary `git add app.txt` remains usable. Windows `.exe` names share the corresponding executable checks.
 Batch `.bat`/`.cmd` files and shell interpreters require manual review and are denied. A passing process is eligible evidence only when the before/after snapshots
 match and the starting tree is clean. Test commands that generate untracked files must
 ignore those outputs deliberately. Commit the policy before collecting release evidence.
@@ -125,9 +127,9 @@ python3 -m venv .venv
 ```
 
 The CI matrix covers Python 3.11–3.13 across Linux, macOS and Windows. Its first run at
-`124eb7d` passed six Linux/macOS jobs and failed all three Windows jobs. This branch fixes
-the argv/shell boundary implicated by those failures; remote verification of the fix is
-pending. The measured 1,000-process hook benchmark failed the p95 <50ms target
+`124eb7d` passed six Linux/macOS jobs and failed all three Windows jobs. The argv fix at
+`2483e62` subsequently [passed all nine jobs](https://github.com/luminosstudioai-creator/receiptgate/actions/runs/37282071299).
+The current Git-pathspec guard still awaits its own remote verification. The measured 1,000-process hook benchmark failed the p95 <50ms target
 (p95 130.3ms on that earlier commit). Details and raw benchmark data are recorded in
 [docs/acceptance.md](docs/acceptance.md).
 

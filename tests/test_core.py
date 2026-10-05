@@ -88,6 +88,41 @@ class CLI(unittest.TestCase):
         self.git("add", "app.txt")
         self.assertEqual(self.decision("./deploy.sh")["decision"], "deny")
 
+    def test_runner_git_pathspec_cannot_remove_policy(self):
+        for args in [("rm", "*"), ("rm", "-r", ".")]:
+            with self.subTest(args=args):
+                result = self.runcli("run", "--", "git", *args)
+                self.assertEqual(
+                    (
+                        result.returncode,
+                        (self.repo / "receiptgate.toml").exists(),
+                        (self.repo / "app.txt").exists(),
+                    ),
+                    (2, True, True),
+                )
+
+    def test_runner_git_pathspec_cannot_stage_secret(self):
+        p = self.repo / "receiptgate.toml"
+        p.write_text(p.read_text().replace('"secrets/**"', '"secrets/**", "nested/secrets/**"'))
+        self.git("add", "receiptgate.toml")
+        self.git("commit", "-m", "nested secret policy")
+        (self.repo / ".env").write_text("SYNTHETIC_TEST_VALUE=example")
+        (self.repo / "nested/secrets").mkdir(parents=True)
+        (self.repo / "nested/secrets/token.txt").write_text("SYNTHETIC_TEST_VALUE=example")
+        for pathspec in ["*", ":(glob)**", ".", ":/", "--all", "nested/"]:
+            with self.subTest(pathspec=pathspec):
+                result = self.runcli("run", "--", "git", "add", pathspec)
+                staged = self.git("diff", "--cached", "--name-only").splitlines()
+                self.assertEqual(
+                    (result.returncode, b".env" in staged, b"nested/secrets/token.txt" in staged),
+                    (2, False, False),
+                )
+        self.assertEqual(self.runcli("check", "--", "git add '*'").returncode, 2)
+        self.assertFalse((self.repo / ".receiptgate/ledger.jsonl").exists())
+        (self.repo / "app.txt").write_text("a safe literal change")
+        self.assertEqual(self.runcli("run", "--", "git", "add", "app.txt").returncode, 0)
+        self.assertEqual(self.git("diff", "--cached", "--name-only").splitlines(), [b"app.txt"])
+
     def test_runner_preserves_literal_backslashes_and_operators(self):
         values = [r"C:\temp\folder", "||", ";", "$HOME", "~", "*"]
         result = self.runcli(

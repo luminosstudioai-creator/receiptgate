@@ -79,6 +79,68 @@ def secret(path: str, policy: dict[str, Any]) -> bool:
     )
 
 
+GIT_PATHSPEC_OPS = {
+    "add",
+    "rm",
+    "restore",
+    "checkout",
+    "reset",
+    "diff",
+    "ls-files",
+    "commit",
+    "stash",
+    "archive",
+}
+
+
+def git_selection(root: Path, part: list[str], policy: dict[str, Any]) -> dict[str, str] | None:
+    """Git expands pathspecs itself. Accept only auditable literal selections."""
+    op = part[1]
+    if op not in GIT_PATHSPEC_OPS:
+        return None
+    args = part[2:]
+    for arg in args:
+        if (
+            any(char in arg for char in "*?[")
+            or arg.startswith(":")
+            or arg.startswith("--pathspec-")
+        ):
+            return decision(False, "R0", "Git pathspec expansion requires manual review")
+        if arg in ["--all", "-A", "--update", "-u"] or op == "commit" and arg.startswith("-a"):
+            return decision(False, "R0", "Implicit Git file selection requires manual review")
+        if not arg.startswith("-"):
+            target = root / arg
+            if arg.endswith(("/", "\\")) or target.is_dir():
+                return decision(
+                    False, "R0", "Recursive Git directory selection requires manual review"
+                )
+            if secret(relative(root, arg), policy):
+                return decision(False, "R4", "Protected secret path")
+    if op in ["add", "rm", "restore"]:
+        paths = []
+        options = {
+            "--",
+            "-f",
+            "--force",
+            "-n",
+            "--dry-run",
+            "--cached",
+            "--ignore-unmatch",
+            "-r",
+            "-v",
+            "--verbose",
+        }
+        for arg in args:
+            if arg.startswith("-"):
+                if arg not in options:
+                    return decision(False, "R0", "Git selection option requires manual review")
+            else:
+                paths.append(root / arg)
+        if not paths or any(not path.is_file() for path in paths):
+            return decision(False, "R0", "Git selection requires explicit existing regular files")
+    return None
+
+
 def evaluate(
     root: Path,
     command: str,
@@ -193,6 +255,9 @@ def _evaluate_parts(
             if len(part) < 2 or part[1].startswith("-"):
                 return decision(False, "R3", "Git global options require manual review")
             op = part[1]
+            selection = git_selection(root, part, policy)
+            if selection is not None:
+                return selection
             protected = policy["branches"]["protected"]
             if op in ["config", "update-index"]:
                 return decision(
