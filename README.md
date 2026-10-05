@@ -31,8 +31,13 @@ receiptgate verify
 receiptgate status
 ```
 
-`check` never executes the command. `run` executes an argument vector directly, without
-a shell. A passing process is eligible evidence only when the before/after snapshots
+`check` never executes the command and interprets its input as restricted POSIX/Bash shell
+text, including on Windows. It does not interpret PowerShell or cmd syntax. `run` checks
+and executes the original argument vector directly, without a shell. Backslashes and
+operator-like argument strings remain literal data; they are never reparsed as shell code.
+Known wrappers, leading option aliases and protected operations use the same rule checks
+in both interfaces. Windows `.exe` names share the corresponding executable checks.
+Batch `.bat`/`.cmd` files and shell interpreters require manual review and are denied. A passing process is eligible evidence only when the before/after snapshots
 match and the starting tree is clean. Test commands that generate untracked files must
 ignore those outputs deliberately. Commit the policy before collecting release evidence.
 
@@ -119,8 +124,11 @@ python3 -m venv .venv
 .venv/bin/coverage report --include="*/rules.py,*/ledger.py,*/shell.py" --fail-under=90
 ```
 
-The CI source includes Python 3.11–3.13 across Linux, macOS and Windows. A configured matrix
-is not evidence those remote jobs passed. Local verification and remaining release gates
-are recorded explicitly in [docs/acceptance.md](docs/acceptance.md).
+The CI matrix covers Python 3.11–3.13 across Linux, macOS and Windows. Its first run at
+`124eb7d` passed six Linux/macOS jobs and failed all three Windows jobs. This branch fixes
+the argv/shell boundary implicated by those failures; remote verification of the fix is
+pending. The measured 1,000-process hook benchmark failed the p95 <50ms target
+(p95 130.3ms on that earlier commit). Details and raw benchmark data are recorded in
+[docs/acceptance.md](docs/acceptance.md).
 
 Apache-2.0 · Copyright 2026 Mika Mischke

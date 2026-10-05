@@ -91,9 +91,37 @@ def evaluate(
     except shell.ShellError as exc:
         return decision(False, "SHELL", str(exc))
     parts = shell.segments(words)
+    operators = [w for w in words if w and all(c in ";&|<>" for c in w)]
+    return _evaluate_parts(root, parts, policy, state, rows, operators)
+
+
+def evaluate_argv(
+    root: Path,
+    argv: list[str],
+    policy: dict[str, Any],
+    state: dict[str, Any],
+    rows: list[dict[str, Any]],
+) -> dict[str, str]:
+    """Check one direct subprocess argument vector, without shell expansion/parsing."""
+    try:
+        shell.validate_exec(argv)
+    except shell.ShellError as exc:
+        return decision(False, "SHELL", str(exc))
+    return _evaluate_parts(root, [argv], policy, state, rows, [])
+
+
+def _evaluate_parts(
+    root: Path,
+    parts: list[list[str]],
+    policy: dict[str, Any],
+    state: dict[str, Any],
+    rows: list[dict[str, Any]],
+    operators: list[str],
+) -> dict[str, str]:
+    words = [word for part in parts for word in part]
     normalized = []
     for part in parts:
-        executable = Path(part[0]).name
+        executable = shell.executable_name(part[0])
         gate_executable = (
             "./" + executable
             if any(
@@ -120,7 +148,6 @@ def evaluate(
         for commands in policy["receipts"].values()
         for cmd in commands
     )
-    operators = [w for w in words if w and all(c in ";&|<>" for c in w)]
     if (gated or tested) and operators:
         return decision(
             False,
@@ -128,7 +155,7 @@ def evaluate(
             "Receipt commands and gates must be direct: shell operators can mask exit codes",
         )
     for part in parts:
-        executable = Path(part[0]).name
+        executable = shell.executable_name(part[0])
         if executable in ["rm", "mv"]:
             for arg in part[1:]:
                 target = (root / arg).resolve()

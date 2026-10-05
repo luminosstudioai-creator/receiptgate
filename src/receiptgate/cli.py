@@ -24,7 +24,7 @@ def install_git(root: Path) -> None:
     if not hooks.is_absolute():
         hooks = root / hooks
     hooks.mkdir(exist_ok=True)
-    executable = shlex.quote(sys.executable)
+    executable = shlex.quote(Path(sys.executable).as_posix())
     for name in ["pre-push", "commit-msg"]:
         path = hooks / name
         text = f'#!/bin/sh\n# receiptgate managed hook\nexec {executable} -m receiptgate hook git {name} "$@"\n'
@@ -195,7 +195,12 @@ def main(argv: list[str] | None = None) -> int:
             if args.action == "check" and len(command_args) == 1
             else shlex.join(command_args)
         )
-        d = rules.evaluate(root, command, p, state, ledger.read(root))
+        rows = ledger.read(root)
+        d = (
+            rules.evaluate(root, command, p, state, rows)
+            if args.action == "check"
+            else rules.evaluate_argv(root, command_args, p, state, rows)
+        )
         if args.action == "check":
             emit(d)
             return 0 if d["decision"] == "allow" else 2

@@ -88,6 +88,23 @@ class CLI(unittest.TestCase):
         self.git("add", "app.txt")
         self.assertEqual(self.decision("./deploy.sh")["decision"], "deny")
 
+    def test_runner_preserves_literal_backslashes_and_operators(self):
+        values = [r"C:\temp\folder", "||", ";", "$HOME", "~", "*"]
+        result = self.runcli(
+            "run",
+            "--",
+            sys.executable,
+            "-c",
+            "import json,sys; print(json.dumps(sys.argv[1:]))",
+            *values,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), values)
+        row = json.loads((self.repo / ".receiptgate/ledger.jsonl").read_text())
+        self.assertEqual(row["exit_code"], 0)
+        self.assertEqual(row["kind"], "command")
+        self.assertEqual(self.decision("./deploy.sh")["decision"], "deny")
+
     def test_hidden_index_flags_fail_closed(self):
         p = self.repo / "receiptgate.toml"
         p.write_text(
@@ -194,6 +211,56 @@ class CLI(unittest.TestCase):
         )
         self.assertEqual(r.returncode, 2)
         self.assertEqual(json.loads(r.stdout)["decision"], "block")
+
+    def test_installed_pre_push_runs_in_real_git(self):
+        remote = self.repo.parent / (self.repo.name + "-remote.git")
+        subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True)
+        try:
+            self.git("remote", "add", "origin", str(remote))
+            self.git("branch", "topic")
+            self.assertEqual(self.runcli("install", "git").returncode, 0)
+            blocked = subprocess.run(
+                ["git", "push", "origin", "main"],
+                cwd=self.repo,
+                env=ENV,
+                text=True,
+                capture_output=True,
+            )
+            self.assertNotEqual(blocked.returncode, 0)
+            self.assertIn("receiptgate blocked", blocked.stderr)
+            main_ref = subprocess.run(
+                [
+                    "git",
+                    "--git-dir",
+                    str(remote),
+                    "show-ref",
+                    "--verify",
+                    "--quiet",
+                    "refs/heads/main",
+                ],
+                capture_output=True,
+            )
+            self.assertNotEqual(main_ref.returncode, 0)
+            allowed = subprocess.run(
+                ["git", "push", "origin", "topic"],
+                cwd=self.repo,
+                env=ENV,
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(allowed.returncode, 0, allowed.stderr)
+            remote_sha = subprocess.check_output(
+                ["git", "--git-dir", str(remote), "rev-parse", "refs/heads/topic"]
+            ).strip()
+            self.assertEqual(remote_sha, self.git("rev-parse", "HEAD").strip())
+        finally:
+            import shutil
+
+            def writable_and_retry(function, path, error):
+                os.chmod(path, 0o700)
+                function(path)
+
+            shutil.rmtree(remote, onerror=writable_and_retry)
 
     def test_git_hook_decisions_and_existing_hook_preserved(self):
         r = self.runcli(

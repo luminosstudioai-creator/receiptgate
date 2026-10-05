@@ -101,6 +101,38 @@ class Security(unittest.TestCase):
         with self.assertRaises(shell.ShellError):
             shell.tokens("echo ~+")
 
+    def test_direct_argv_preserves_checks_without_shell_operators(self):
+        for argv in [
+            ["nice", "git", "push", "origin", "HEAD:main"],
+            ["git.exe", "push", "origin", "main"],
+            ["npm", "--prefix", "/tmp", "publish"],
+            ["cmd.exe", "/c", "deploy.cmd"],
+            ["deploy.cmd"],
+            ["powershell.exe", "-Command", "deploy"],
+        ]:
+            with self.subTest(argv=argv):
+                self.assertEqual(
+                    rules.evaluate_argv(self.root, argv, self.policy, STATE, [])["decision"], "deny"
+                )
+        self.assertEqual(
+            rules.evaluate_argv(
+                self.root, ["echo", r"C:\temp\folder", "||"], self.policy, STATE, []
+            )["decision"],
+            "allow",
+        )
+        self.assertEqual(
+            rules.evaluate_argv(self.root, ["pytest", "||", "true"], self.policy, STATE, [])[
+                "decision"
+            ],
+            "allow",
+        )
+        self.assertEqual(rules.kind_for("pytest '||' true", self.policy), "command")
+        for argv in [[], [""], ["echo", "nul\x00"]]:
+            with self.subTest(argv=argv):
+                self.assertEqual(
+                    rules.evaluate_argv(self.root, argv, self.policy, STATE, [])["decision"], "deny"
+                )
+
     def test_git_metadata_refspec_object_and_tilde_regressions(self):
         for command in [
             "git config --local core.hooksPath /dev/null",
