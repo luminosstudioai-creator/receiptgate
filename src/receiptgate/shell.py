@@ -1,6 +1,6 @@
 """A deliberately small shell grammar, rejecting expansion and hidden execution.
 
-This is a policy aid, not a shell interpreter or sandbox. Quoted operators stay data.
+This is a policy aid, not a shell interpreter or sandbox. Operator-only quoted arguments may be conservatively rejected.
 """
 
 import shlex

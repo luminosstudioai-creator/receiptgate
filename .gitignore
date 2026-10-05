@@ -9,3 +9,9 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+.coverage.*
+.env
+.env.*
+*.pem
+secrets/
+.DS_Store

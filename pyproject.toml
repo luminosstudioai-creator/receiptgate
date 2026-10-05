@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.27,<2"]
+requires = ["hatchling==1.32.4"]
 build-backend = "hatchling.build"
 
 [project]
@@ -13,6 +13,10 @@ authors = [{name = "Mika Mischke"}]
 keywords = ["agents", "git", "audit", "receipts", "developer-tools"]
 classifiers = ["Development Status :: 3 - Alpha", "Programming Language :: Python :: 3", "Operating System :: OS Independent"]
 dependencies = []
+
+[project.urls]
+Repository = "https://github.com/luminosstudioai-creator/receiptgate"
+Issues = "https://github.com/luminosstudioai-creator/receiptgate/issues"
 
 [project.scripts]
 receiptgate = "receiptgate.cli:main"

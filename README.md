@@ -1,5 +1,7 @@
 # receiptgate
 
+[![Checks](https://github.com/luminosstudioai-creator/receiptgate/actions/workflows/ci.yml/badge.svg)](https://github.com/luminosstudioai-creator/receiptgate/actions/workflows/ci.yml)
+
 **Your agent says the tests passed. Keep evidence for the code it actually tested.**
 
 A small local command runner and policy checker. Successful allowlisted commands become receipts bound to
@@ -46,7 +48,7 @@ ignore those outputs deliberately. Commit the policy before collecting release e
 | SHELL | Reject indirect execution, substitutions, variables, heredocs and compound syntax |
 
 Rules are deterministic. Shell support is deliberately restricted and can reject safe
-commands. Ordinary quoted text such as `echo "|| true"` remains data. Python programs,
+commands. Operator-only quoted arguments can also be conservatively rejected. Ordinary quoted text such as `echo "|| true"` remains data. Python programs,
 scripts, aliases and executables can do arbitrary things; this tool does not inspect their
 code. Configure exact commands and use your existing sandbox and agent permissions.
 
