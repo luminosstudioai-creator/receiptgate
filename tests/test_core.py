@@ -88,6 +88,37 @@ class CLI(unittest.TestCase):
         self.git("add", "app.txt")
         self.assertEqual(self.decision("./deploy.sh")["decision"], "deny")
 
+    def test_hidden_index_flags_fail_closed(self):
+        p = self.repo / "receiptgate.toml"
+        p.write_text(
+            p.read_text().replace(
+                '"pytest"', json.dumps(shlex.join([sys.executable, "-c", "pass"])) + ', "pytest"'
+            )
+        )
+        self.git("add", "receiptgate.toml")
+        self.git("commit", "-m", "exact command")
+        self.assertEqual(self.runcli("run", "--", sys.executable, "-c", "pass").returncode, 0)
+        self.assertEqual(self.decision("./deploy.sh")["decision"], "allow")
+        for flag, undo in [
+            ("--assume-unchanged", "--no-assume-unchanged"),
+            ("--skip-worktree", "--no-skip-worktree"),
+        ]:
+            with self.subTest(flag=flag):
+                self.git("update-index", flag, "app.txt")
+                (self.repo / "app.txt").write_text("hidden change")
+                self.assertEqual(self.runcli("check", "--", "./deploy.sh").returncode, 2)
+                self.assertEqual(
+                    self.runcli("run", "--", sys.executable, "-c", "pass").returncode, 2
+                )
+                with self.assertRaises(ValueError):
+                    gitstate.snapshot(self.repo)
+                self.assertEqual(
+                    len((self.repo / ".receiptgate/ledger.jsonl").read_text().splitlines()), 1
+                )
+                self.git("update-index", undo, "app.txt")
+                (self.repo / "app.txt").write_text("hello")
+                self.assertEqual(self.decision("./deploy.sh")["decision"], "allow")
+
     def test_untracked_fingerprints_and_state_changed_during_runner(self):
         before = gitstate.snapshot(self.repo)
         (self.repo / "new.txt").write_text("first")

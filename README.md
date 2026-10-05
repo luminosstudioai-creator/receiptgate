@@ -38,7 +38,7 @@ ignore those outputs deliberately. Commit the policy before collecting release e
 
 | Rule | Behavior |
 |---|---|
-| R0 | Protect policy, ledger and agent/Git hook paths from direct file and command access |
+| R0 | Protect policy, ledger and agent/Git metadata paths from direct file and command access |
 | R1 | Require recent green receipts of each configured kind for the exact clean state |
 | R2 | Reject operators in receipt/gate commands: pipelines and chained success can mask errors |
 | R3 | Protect branch destinations, refspecs, destructive operations and merge mode |
@@ -97,9 +97,11 @@ collection-only invocation cannot inherit the default test classification. Owner
 configure meaningless commands; receipts prove an observed exit code, not test semantics.
 
 Snapshots exclude Git-ignored paths, the evidence directory and environmental dependencies.
+Assume-unchanged/skip-worktree index flags and submodules are rejected rather than
+accepted as clean evidence. Existing protected-file hardlink aliases are checked by inode.
 They detect lasting changes, not a transient change followed by restoration between
 snapshots. The checker also cannot make the interval between checking and deployment
-atomic. Submodules and hostile concurrent writers require a stronger sandbox/trust model.
+atomic. Hostile concurrent writers require a stronger sandbox/trust model.
 See [SECURITY.md](SECURITY.md).
 
 ## Development

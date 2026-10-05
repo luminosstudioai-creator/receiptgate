@@ -135,7 +135,7 @@ class RuleTables(unittest.TestCase):
                 "git status",
                 "git diff",
                 "git log",
-                "git show HEAD",
+                "git rev-parse HEAD",
                 "git push origin topic",
                 "git push origin main-feature",
                 "git push origin topic:other",

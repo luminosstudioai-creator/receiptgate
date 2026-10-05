@@ -97,6 +97,36 @@ class Security(unittest.TestCase):
         with self.assertRaises(ledger.LedgerError):
             ledger.append(self.root, {})
 
+    def test_tilde_expansion_grammar_rejected(self):
+        with self.assertRaises(shell.ShellError):
+            shell.tokens("echo ~+")
+
+    def test_git_metadata_refspec_object_and_tilde_regressions(self):
+        for command in [
+            "git config --local core.hooksPath /dev/null",
+            "git config user.name Test",
+            "git update-index --assume-unchanged app.txt",
+            "git push origin :",
+            "git push origin HEAD:",
+            "git show HEAD:.env",
+            "git cat-file -p HEAD:.env",
+            "rm .git/config",
+            "~+/deploy.sh",
+            "cat ~+/.env",
+        ]:
+            with self.subTest(command=command):
+                self.assertEqual(self.check(command)["decision"], "deny")
+
+    def test_hardlink_alias_protected(self):
+        import os
+
+        alias = self.root / "policy-alias"
+        os.link(self.root / "receiptgate.toml", alias)
+        self.assertEqual(self.check("rm policy-alias")["decision"], "deny")
+        self.assertEqual(
+            rules.path_check(self.root, str(alias), self.policy, True)["decision"], "deny"
+        )
+
     def test_glob_and_control_prefixes_fail_closed(self):
         for command in [
             "rm -rf *",

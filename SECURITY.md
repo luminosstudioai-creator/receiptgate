@@ -12,11 +12,14 @@ containing private data. A security contact email is not invented here.
 - A user who can write the ledger can regenerate its hashes or truncate it. There is no
   external anchor, signature, HMAC or trusted service.
 - Fingerprints cover HEAD, the index, tracked diffs, nonignored untracked content and policy
-  bytes. They exclude ignored files, dependencies, external files and process environment.
+  bytes. They hash actual tracked bytes and reject assume-unchanged/skip-worktree flags and
+  submodules. They exclude ignored files, dependencies, external files and process environment.
 - Before/after snapshots cannot detect a temporary change and revert or lock the tested
   state against changes after the gate is checked.
 - Shell checks are conservative heuristics for a restricted grammar, not semantic analysis
   of arbitrary programs. Scripts and interpreters can perform hidden actions.
+- Existing hardlink aliases to policy, ledger and key Git configuration files are checked
+  by inode. This is not an atomic filesystem permission boundary.
 - Rule checks and runner execution are not atomic. Git hooks can be bypassed or replaced.
 - All command text (including executable names) is omitted from receipts. Process output is never stored, but is
   visible to the invoking terminal. The runner cannot redact another program's live output.

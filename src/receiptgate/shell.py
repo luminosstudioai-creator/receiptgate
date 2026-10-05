@@ -23,7 +23,7 @@ def tokens(command: str) -> list[str]:
                 quote = char
             elif quote == char:
                 quote = None
-        elif quote is None and char in "(){}*?[":
+        elif quote is None and char in "(){}*?[~":
             raise ShellError("compound shell syntax is unsupported")
     lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|<>")
     lexer.whitespace_split = True
@@ -71,6 +71,7 @@ def tokens(command: str) -> list[str]:
                 "chrt",
                 "ionice",
                 "stdbuf",
+                "unbuffer",
                 "watch",
                 "parallel",
                 "doas",

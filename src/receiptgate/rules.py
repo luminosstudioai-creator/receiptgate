@@ -12,7 +12,7 @@ PROTECTED = [
     ".claude/settings*.json",
     ".codex/hooks.json",
     ".codex/config.toml",
-    ".git/hooks/**",
+    ".git/**",
 ]
 
 
@@ -29,13 +29,44 @@ def relative(root: Path, value: str) -> str:
         return resolved.as_posix()
 
 
+def protected_path(root: Path, value: str) -> bool:
+    normalized = relative(root, value)
+    if matches(normalized, PROTECTED) or normalized in [
+        ".receiptgate",
+        ".claude",
+        ".codex",
+        ".git",
+    ]:
+        return True
+    candidate = root / value
+    if not candidate.is_file():
+        return False
+    patterns = [
+        "receiptgate.toml",
+        ".receiptgate/**/*",
+        ".claude/settings*.json",
+        ".codex/hooks.json",
+        ".codex/config.toml",
+        ".git/config",
+        ".git/index",
+        ".git/HEAD",
+        ".git/hooks/*",
+        ".git/refs/**/*",
+    ]
+    for pattern in patterns:
+        for target in root.glob(pattern):
+            if target.is_file() and candidate.samefile(target):
+                return True
+    return False
+
+
 def decision(allow: bool, rule: str, reason: str) -> dict[str, str]:
     return {"decision": "allow" if allow else "deny", "rule": rule, "reason": reason}
 
 
 def path_check(root: Path, path: str, policy: dict[str, Any], write: bool) -> dict[str, str]:
     value = relative(root, path)
-    if matches(value, PROTECTED) or value in [".receiptgate", ".claude", ".codex", ".git"]:
+    if protected_path(root, path):
         return decision(False, "R0", "Policy, evidence and hook configuration are protected")
     if not write and secret(value, policy):
         return decision(False, "R4", "Protected secret path")
@@ -76,12 +107,7 @@ def evaluate(
     for word in words:
         if not word or all(c in ";&|<>" for c in word):
             continue
-        if matches(relative(root, word), PROTECTED) or word in [
-            ".receiptgate",
-            ".claude",
-            ".codex",
-            ".git",
-        ]:
+        if protected_path(root, word):
             return decision(False, "R0", "Policy, evidence and hook configuration are protected")
     gated = [
         gate
@@ -115,12 +141,7 @@ def evaluate(
         if executable in ["printenv", "env"]:
             return decision(False, "R4", "Environment dumps can expose secrets")
         for arg in part[1:]:
-            if matches(relative(root, arg), PROTECTED) or arg in [
-                ".receiptgate",
-                ".claude",
-                ".codex",
-                ".git",
-            ]:
+            if protected_path(root, arg):
                 return decision(
                     False, "R0", "Policy, evidence and hook configuration are protected"
                 )
@@ -146,6 +167,14 @@ def evaluate(
                 return decision(False, "R3", "Git global options require manual review")
             op = part[1]
             protected = policy["branches"]["protected"]
+            if op in ["config", "update-index"]:
+                return decision(
+                    False, "R0", "Git configuration and index visibility require manual review"
+                )
+            if op in ["show", "cat-file", "grep"]:
+                return decision(
+                    False, "R4", "Git object reads may expose protected secret contents"
+                )
             if op == "clean":
                 return decision(False, "R0", "Git clean can remove evidence and policy files")
             current = matches(state["branch"], protected)
@@ -163,7 +192,7 @@ def evaluate(
                     )
                 destinations = [r.split(":")[-1].removeprefix("refs/heads/") for r in refs[1:]]
                 if (len(refs) < 2 and current) or any(
-                    matches(r, protected) or r == "HEAD" and current or "*" in r
+                    not r or matches(r, protected) or r == "HEAD" and current or "*" in r
                     for r in destinations
                 ):
                     return decision(False, "R3", "Push to protected branch")

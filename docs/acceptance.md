@@ -5,10 +5,12 @@ This is not the original handoff's completed 0.1 release.
 
 ## Passed locally
 
-- 29 unittest methods, including 30 explicit behavior cases for each R0–R4 rule.
+- 33 unittest methods, including 30 explicit behavior cases for each R0–R4 rule.
 - Direct subprocess exit-code preservation and no green receipt for version/help probes.
 - Gate closes without evidence, opens after exact successful allowlisted command, closes
   after tracked/untracked/index changes, and refuses evidence if the runner changes state.
+- Snapshot rejects assume-unchanged/skip-worktree flags, hashes actual tracked bytes,
+  and rejects submodules; both hidden index flags have real Git/CLI regressions.
 - SHA/tree/expiry/eligibility receipt matching; corrupted/incomplete ledger rejection;
   12 concurrent OS-locked appenders retain a valid chain.
 - Synthetic pre/file/stop JSON decisions, post-hook receipt refusal and unknown-tool refusal.
@@ -16,9 +18,10 @@ This is not the original handoff's completed 0.1 release.
   of pre-existing hooks.
 - Independent adversarial findings have regression tests: implicit configured push targets,
   executable path aliases, broad directory removal, git clean, redirection, wrappers,
-  leading command options, shell globs/control constructs and secret executable names.
+  leading command options, shell globs/control constructs, secret executable names,
+  hidden index flags, empty push destinations, metadata mutation and hardlink aliases.
 - Ruff 0.16.10 lint and formatting; mypy 2.4.0 strict, 8 source modules.
-- Coverage 7.16.2: aggregate rules/ledger/shell core ≥90% (locally 95%, rounded).
+- Coverage 7.16.2: aggregate rules/ledger/shell core ≥90% (locally 96%, rounded).
 - Build 1.6.1 / Hatchling 1.32.4: wheel and source distribution build successfully.
 
 The unittest method count is separate from the 150 rule-table subcases. No live fixture is
