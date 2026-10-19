@@ -22,7 +22,7 @@ Issues = "https://github.com/luminosstudioai-creator/receiptgate/issues"
 receiptgate = "receiptgate.cli:main"
 
 [project.optional-dependencies]
-dev = ["ruff==0.16.10", "mypy==2.4.0", "coverage==7.16.2", "build==1.6.1"]
+dev = ["ruff==0.17.1", "mypy==2.4.0", "coverage==7.16.2", "build==1.6.1"]
 
 [tool.ruff]
 line-length = 100
